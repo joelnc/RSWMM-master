@@ -187,11 +187,12 @@ openSWMMOut<-function(outFile, verbose=T) {
     output$numLinkVars=readBin(f, integer(), n=1, size=4)
     output$linkVarCodes=readBin(f,integer(), n=  output$numLinkVars,size=4)
     output$numSysVars=readBin(f,integer(),n=1,size=4)
-    output$sysVarCodes==readBin(f,integer(), n=output$numSysVars,size=4)
-
-
-
-    output$bytesPerPeriod= 2*RECORDSIZE +
+#############################################################################
+    ## This line is as written from PSteinburg... pretty sure that should be
+    ## assignment, not logical
+    output$sysVarCodes==readBin(f,integer(), n=output$numSysVars, size=4)
+#############################################################################
+    output$bytesPerPeriod <- 2*RECORDSIZE +
         (output$numSubc*(output$numSubcVars) +
          output$numNode*(output$numNodeVars) +
          output$numLink*(output$numLinkVars) +
