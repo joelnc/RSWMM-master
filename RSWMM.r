@@ -18,7 +18,7 @@ checkSWMMForErrors <- function(outFile) {
     return(output$errorStatus)
 }
 
-getCalDataFromCSV<-function(CSVFile,dateFormat="%m/%d/%y %H:%M") {
+getCalDataFromCSV<-function(CSVFile, dateFormat="%m/%d/%y %H:%M") {
     ## Calibration Data should be in a CSV with datetimes in the first
     ##   column, and data in the second column
     ## The text file is assumed to have a one line header
@@ -30,11 +30,11 @@ getCalDataFromCSV<-function(CSVFile,dateFormat="%m/%d/%y %H:%M") {
     temp <- read.csv(file=CSVFile, header=TRUE, sep=",", quote="\"",
                      dec=".", fill=TRUE, comment.char="",
                      stringsAsFactors=FALSE)
-    calData <<- {}
-    calData$times <<- as.POSIXct(strptime(temp[,1], format=dateFormat,
+    calData <- {}
+    calData$times <- as.POSIXct(strptime(temp[,1], format=dateFormat,
                                           tz="GMT"))
     ## Edit 2/10/2012 to force GMT time zone rather than locale specific
-    calData$obs <<- temp[,2]
+    calData$obs <- temp[,2]
     return(calData)
 }
 
