@@ -6,8 +6,8 @@
 
 runSWMM <- function(inpFile, rptFile, outFile, SWMMexe='swmm5.exe',
                     verbose=T) {
-    # Runs swmm on the inpFile, rptFile, outFile provided.
-    # Does not create dirs
+    ## Runs swmm on the inpFile, rptFile, outFile provided.
+    ## Does not create dirs
     inpFile <- paste('"', inpFile,'"',sep="")
     rptFile <- paste('"', rptFile,'"',sep="")
     outFile <- paste('"', outFile,'"',sep="")
@@ -24,7 +24,7 @@ runSWMM <- function(inpFile, rptFile, outFile, SWMMexe='swmm5.exe',
     flush.console()
 }
 checkSWMMForErrors <- function(outFile) {
-# Checks a SWMM output file for errors
+## Checks a SWMM output file for errors
     f <- file(outFile,"rb")
     seek(f,-6*4,"end")
     output <- {}
@@ -38,7 +38,7 @@ checkSWMMForErrors <- function(outFile) {
     return(output$errorStatus)
 }
 openSWMMOut<-function(outFile, verbose=T) {
-# Gets the header of a binary output file
+## Gets the header of a binary output file
     RECORDSIZE <- 4
     output <- {}
     f <- file(outFile, "rb")
@@ -59,9 +59,9 @@ openSWMMOut<-function(outFile, verbose=T) {
         print(paste("SWMM Errored out with code", output$errorStatus))
         return(output)
     }
-    # Get Object IDs
+    ## Get Object IDs
     seek(f, output$position.objectID, "start");
-    # For all subcatchments
+    ## For all subcatchments
     output$subcNames <- {}
     if(output$numSubc>0) {
         for(i in 1:output$numSubc) {
@@ -69,7 +69,7 @@ openSWMMOut<-function(outFile, verbose=T) {
             output$subcNames[i]=readChar(f, lengthName, useBytes = FALSE)
         }
     }
-    # For all nodes
+    ## For all nodes
     output$nodeNames <- {};
     if(output$numNode>0) {
         for(i in 1:output$numNode) {
@@ -77,136 +77,127 @@ openSWMMOut<-function(outFile, verbose=T) {
             output$nodeNames[i] <- readChar(f, lengthName, useBytes=FALSE)
         }
     }
-    # For all links
+    ## For all links
     output$linkNames <- {};
     if(output$numLink>0) {
         for(i in 1:output$numLink) {
             lengthName <- readBin(f, integer(), n=1, size=4)
-#       print(lengthName)
+##           print(lengthName)
             output$linkNames[i] <- readChar(f, lengthName, useBytes=FALSE)
         }
     }
-  # For all pollutants
-  output$pollNames={};
-  output$pollUnits={};
-  if(output$numPoll>0){
-    #A bug was fixed in this section on 1/10/2012 at 1:34 pm
-    for(i in 1:output$numPoll){
-
-
-       lengthName=readBin(f, integer(), n = 1, size = 4)
-       output$pollNames[i]=readChar(f, lengthName, useBytes = FALSE)
-
+    ## For all pollutants
+    output$pollNames <- {};
+    output$pollUnits <- {};
+    if(output$numPoll>0) {
+    ## A bug was fixed in this section on 1/10/2012 at 1:34 pm
+        for(i in 1:output$numPoll) {
+            lengthName <- readBin(f, integer(), n=1, size=4)
+            output$pollNames[i] <- readChar(f, lengthName, useBytes=FALSE)
+        }
+        for(i in 1:output$numPoll) {
+            unitCode <- readBin(f, integer(), n=1, size=4)
+##          print(unitCode)
+            if(unitCode==0) {
+                output$pollUnits[i] <- "mg/L"
+            } else if(unitCode==1) {
+                output$pollUnits[i] <- "ug/L"
+            } else if(unitCode==2) {
+                output$pollUnits[i] <- "counts/L"
+            }
+        }
+    ## End 1/10/2012 bug fix
     }
-    for(i in 1:output$numPoll){
+    seek(f, output$position.objectProperties, "start")
 
-
-      unitCode=readBin(f, integer(), n = 1, size = 4)
-      #print(unitCode)
-      if(unitCode==0){
-        output$pollUnits[i]="mg/L"
-      }else if(unitCode==1){
-        output$pollUnits[i]="ug/L"
-      }else if(unitCode==2){
-        output$pollUnits[i]="counts/L"
-      }
-    }
-    #end 1/10/2012 bug fix
-  }
-     seek(f,output$position.objectProperties,"start")
-
-
-      #Subcatchments
-
-       output$numSubcPropSaved= readBin(f, integer(), n = 1, size = 4)
-       output$codesSubcPropSaved=readBin(f, integer(), n = 1, size = 4)
-       if (output$codesSubcPropSaved==1){
+    ## Subcatchments
+    output$numSubcPropSaved <- readBin(f, integer(), n=1, size=4)
+    output$codesSubcPropSaved <- readBin(f, integer(), n=1, size=4)
+    if (output$codesSubcPropSaved==1){
         output$subcArea=readBin(f,what="double",n=output$numSubc,size=4);
-      #print(output$subcArea)
-       }
+##      print(output$subcArea)
+    }
 
-     #Nodes
+    ## Nodes
+    output$numNodePropSaved <- readBin(f, integer(), n=1, size=4)
+    output$codesNodePropSaved <- readBin(f, integer(),
+                                         n=output$numNodePropSaved, size=4);
 
-       output$numNodePropSaved=readBin(f, integer(), n = 1, size = 4)
-       output$codesNodePropSaved=readBin(f, integer(),n=output$numNodePropSaved,size=4);
+    if(output$numNode>0) {
+        temp <- readBin(f, what="double",
+                        n=output$numNodePropSaved*output$numNode, size=4)
+        codestemp <- temp[seq(from=1, by=3, to=length(temp))]
+        output$nodeType <- {}
+        count <- 0
+        for(i in codestemp) {
+            count <- count+1
+            if(i==0) {
+                output$nodeType[count] <- "Junction"
+            } else if(i==1){
+                output$nodeType[count] <- "Outfall"
+            } else if(i==2){
+                output$nodeType[count] <- "Storage"
+            } else if(i==3){
+                output$nodeType[count] <- "Divider"
+            }
+        }
+        output$nodeInvert <- temp[seq(from=2,by=3,to=length(temp))]
+        output$nodeMaxDepth <- temp[seq(from=3,by=3,to=length(temp))]
+    }
+    ## Links
+    output$numLinkPropSaved <- readBin(f, integer(), n=1, size=4)
+    output$codesLinkPropSaved <- readBin(f, integer(),
+                                         n=output$numLinkPropSaved, size=4)
+    if(output$numLink>0) {
+        temp <- readBin(f, what="double",
+                        n=output$numLinkPropSaved*output$numLink, size=4)
+        codestemp <- temp[seq(from=1, by=5, to=length(temp))]
+        output$linkType <- {}
+        count <- 0
+        for(i in codestemp) {
+            count <- count+1
+            if(i==0) {
+                output$linkType[count] <- "Conduit"
+            } else if(i==1) {
+                output$linkType[count] <- "Pump"
+            } else if(i==2) {
+                output$linkType[count] <- "Orifice"
+            } else if(i==3) {
+                output$linkType[count] <- "Weir"
+            } else if(i==4) {
+                output$linkType[count] <- "Outlet"
+            }
+        }
 
-      if(output$numNode>0){
-      temp=readBin(f,what="double",n=output$numNodePropSaved*output$numNode,size=4)
-      codestemp=temp[seq(from=1,by=3,to=length(temp))]
-       output$nodeType={}
-      count=0
-      for( i in codestemp){
-         count=count+1
-         if(i==0){
-            output$nodeType[count]="Junction"
-          }else if(i==1){
-            output$nodeType[count]="Outfall"
-          }else if(i==2){
-            output$nodeType[count]="Storage"
-          }else if(i==3){
-            output$nodeType[count]="Divider"
-          }
-      }
-      output$nodeInvert=temp[seq(from=2,by=3,to=length(temp))]
-      output$nodeMaxDepth=temp[seq(from=3,by=3,to=length(temp))]
-}
+        output$linkUpstreamInvertOffset <- temp[seq(from=2, by=5,
+                                                    to=length(temp))]
+        output$linkDownstreamInvertOffset <- temp[seq(from=3, by=5,
+                                                      to=length(temp))]
+        output$linkMaxDepth <- temp[seq(from=4, by=5, to=length(temp))]
+        output$linkLength <- temp[seq(from=5, by=5, to=length(temp))]
+    }
 
+    output$outFileHandle <- f
+    output$numSubcVars <- readBin(f, integer(), n=1, size=4)
 
-     #Links
-         output$numLinkPropSaved=readBin(f, integer(), n = 1, size = 4)
-       output$codesLinkPropSaved=readBin(f, integer(), n =output$numLinkPropSaved, size = 4)
+    output$subcVarCodes <- readBin(f,integer(),n= output$numSubcVars,size=4)
+    output$numNodeVars <- readBin(f, integer(), n=1, size=4)
 
-
-      if(output$numLink>0){
-
-        temp=readBin(f,what="double",n=output$numLinkPropSaved*output$numLink,size=4)
-      codestemp=temp[seq(from=1,by=5,to=length(temp))]
-      output$linkType={}
-      count=0
-      for( i in codestemp){
-         count=count+1
-          if(i==0){
-            output$linkType[count]="Conduit"
-          }else if(i==1){
-            output$linkType[count]="Pump"
-          }else if(i==2){
-            output$linkType[count]="Orifice"
-          }else if(i==3){
-            output$linkType[count]="Weir"
-          }else if(i==4){
-            output$linkType[count]="Outlet"
-          }
-      }
-
-    output$linkUpstreamInvertOffset=temp[seq(from=2,by=5,to=length(temp))]
-    output$linkDownstreamInvertOffset=temp[seq(from=3,by=5,to=length(temp))]
-    output$linkMaxDepth=temp[seq(from=4,by=5,to=length(temp))]
-    output$linkLength=temp[seq(from=5,by=5,to=length(temp))]
-      }
-
-
-  output$outFileHandle=f
-  output$numSubcVars=readBin(f, integer(), n = 1, size = 4)
-
-  output$subcVarCodes=readBin(f,integer(),n=  output$numSubcVars,size=4)
-  output$numNodeVars=readBin(f, integer(), n = 1, size = 4)
-
-  output$nodeVarCodes=readBin(f,integer(), n=  output$numNodeVars,size=4)
-  output$numLinkVars=readBin(f, integer(), n = 1, size = 4)
-  output$linkVarCodes=readBin(f,integer(), n=  output$numLinkVars,size=4)
-  output$numSysVars=readBin(f,integer(),n=1,size=4)
-  output$sysVarCodes==readBin(f,integer(), n=output$numSysVars,size=4)
-
+    output$nodeVarCodes <- readBin(f,integer(), n=  output$numNodeVars,size=4)
+    output$numLinkVars=readBin(f, integer(), n=1, size=4)
+    output$linkVarCodes=readBin(f,integer(), n=  output$numLinkVars,size=4)
+    output$numSysVars=readBin(f,integer(),n=1,size=4)
+    output$sysVarCodes==readBin(f,integer(), n=output$numSysVars,size=4)
 
 
-  output$bytesPerPeriod= 2*RECORDSIZE +
-                   (output$numSubc*(output$numSubcVars) +
-                    output$numNode*(output$numNodeVars) +
-                    output$numLink*(output$numLinkVars) +
-                    output$numSysVars)*RECORDSIZE;
 
+    output$bytesPerPeriod= 2*RECORDSIZE +
+        (output$numSubc*(output$numSubcVars) +
+         output$numNode*(output$numNodeVars) +
+         output$numLink*(output$numLinkVars) +
+         output$numSysVars)*RECORDSIZE;
 
-  return(output)
+    return(output)
 }
 getSWMMResult<-function(headObj,iType,iIndex,vIndex,period){
 #gets a single SWMM result.  See the documentation in SWMM intefacing for detail
@@ -266,9 +257,9 @@ getSWMMTimes<-function(headObj){
     for(i in 1:headObj$numReportingPeriods){
 
       headObj$SWMMTimes[i]<-readBin(f,what="double",size=8,n=1)
-#      if(i<100){
- #       print(headObj$SWMMTimes[i])
-  #    }
+##      if(i<100){
+ ##       print(headObj$SWMMTimes[i])
+  ##    }
       seek(f,headObj$bytesPerPeriod-8,"current")
     }
   }else{
@@ -544,8 +535,8 @@ readLID<-function(filename,headObj){
 # average z over quarters
 # 1. via "yearqtr" index (regular)
 # 2. via "Date" index (not regular)
-#z.qtr1 <- aggregate(z.day, as.yearqtr, mean)
-#z.qtr2 <- aggregate(z.day, first.of.quarter, mean)
-tz=aggregate(tz,first.of.timeStep,mean)
-  return(tz)
+# z.qtr1 <- aggregate(z.day, as.yearqtr, mean)
+# z.qtr2 <- aggregate(z.day, first.of.quarter, mean)
+tz <- aggregate(tz, first.of.timeStep, mean)
+    return(tz)
 }
