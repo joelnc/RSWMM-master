@@ -5,7 +5,7 @@
 
 
 runSWMM <- function(inpFile, rptFile, outFile, SWMMexe='swmm5.exe',
-                    verbose=T){
+                    verbose=T) {
     # Runs swmm on the inpFile, rptFile, outFile provided.
     # Does not create dirs
     inpFile <- paste('"', inpFile,'"',sep="")
@@ -23,7 +23,7 @@ runSWMM <- function(inpFile, rptFile, outFile, SWMMexe='swmm5.exe',
     }
     flush.console()
 }
-checkSWMMForErrors <- function(outFile){
+checkSWMMForErrors <- function(outFile) {
 # Checks a SWMM output file for errors
     f <- file(outFile,"rb")
     seek(f,-6*4,"end")
@@ -37,38 +37,38 @@ checkSWMMForErrors <- function(outFile){
     output$errorStatus <- readBin(f, integer(), n=1, size=4)
     return(output$errorStatus)
 }
-openSWMMOut<-function(outFile, verbose=T){
+openSWMMOut<-function(outFile, verbose=T) {
 # Gets the header of a binary output file
-  RECORDSIZE=4
-  output={}
-  f=file(outFile, "rb")
+    RECORDSIZE <- 4
+    output <- {}
+    f <- file(outFile, "rb")
 
-  output$header=readBin(f, integer(), n = 7, size = 4)
-  output$numSubc=output$header[4]
-  output$numNode=output$header[5]
-  output$numLink=output$header[6]
-  output$numPoll=output$header[7]
-  output$unitCode=output$header[3]
-  seek(f,-6*4,"end")
-  output$position.objectID=readBin(f, integer(), n = 1, size = 4)
-  output$position.objectProperties=readBin(f, integer(), n = 1, size = 4)
-  output$position.computedResults=readBin(f, integer(), n = 1, size = 4)
-  output$numReportingPeriods=readBin(f, integer(), n = 1, size = 4)
-  output$errorStatus=readBin(f, integer(), n = 1, size = 4)
-  if(output$errorStatus>0){
-    print(paste("SWMM Errored out with code",output$errorStatus))
-    return(output)
-  }
-  #Get Object IDs
-  seek(f,output$position.objectID,"start");
-  #For all subcatchments
-  output$subcNames={}
-  if(output$numSubc>0){
-    for(i in 1:output$numSubc){
-       lengthName=readBin(f, integer(), n = 1, size = 4)
-       output$subcNames[i]=readChar(f, lengthName, useBytes = FALSE)
+    output$header <- readBin(f, integer(), n = 7, size = 4)
+    output$numSubc <- output$header[4]
+    output$numNode <- output$header[5]
+    output$numLink <- output$header[6]
+    output$numPoll <- output$header[7]
+    output$unitCode <- output$header[3]
+    seek(f,-6*4,"end")
+    output$position.objectID <- readBin(f, integer(), n = 1, size = 4)
+    output$position.objectProperties <- readBin(f, integer(), n=1, size=4)
+    output$position.computedResults <- readBin(f, integer(), n=1, size=4)
+    output$numReportingPeriods <- readBin(f, integer(), n=1, size=4)
+    output$errorStatus <- readBin(f, integer(), n=1, size=4)
+    if(output$errorStatus>0) {
+        print(paste("SWMM Errored out with code", output$errorStatus))
+        return(output)
     }
-  }
+    # Get Object IDs
+    seek(f, output$position.objectID, "start");
+    # For all subcatchments
+    output$subcNames <- {}
+    if(output$numSubc>0) {
+        for(i in 1:output$numSubc) {
+            lengthName <- readBin(f, integer(), n = 1, size = 4)
+            output$subcNames[i]=readChar(f, lengthName, useBytes = FALSE)
+        }
+    }
   #For all nodes
   output$nodeNames={};
   if(output$numNode>0){
