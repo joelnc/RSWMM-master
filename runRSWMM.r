@@ -66,7 +66,7 @@ source("C:\\Users\\95218\\Documents\\R\\RSWMM-master\\RSWMM.r")
 #1/1/07 0:06,0.83
 calDataPath <-
     "C:\\Users\\95218\\Documents\\EPA SWMM Projects\\Base Model\\rswmm\\"
-calDataCSV <- paste0(calDataPAth, "flowCalib.csv")
+calDataCSV <- paste0(calDataPath, "flowCalib.csv")
 
 ## If you have a non-standard date format, you can provide that as an
 ##   argument below, but in either case you have to call the function that
@@ -107,9 +107,9 @@ optimizationHistory <- data.frame()
 ##   following variables to TRUE
 ## Set useOptim to TRUE if you are doing single objective optimization,
 ##   otherwise FALSE
-useOptim <- FALSE
+useOptim <- TRUE
 ## Set useMCO to TRUE if you are doing multiobj optimi., otherwise FALSE
-useMCO <- TRUE
+useMCO <- FALSE
 
 #############################################################################
 #######################Single Objective Calibration Begins Here##############
@@ -122,7 +122,7 @@ optimOpt <- {}
 
 ## Pick one of six methods for calibration: may be one of = c("Nelder-Mead",
 ##   "BFGS", "CG", "L-BFGS-B", "SANN", "Brent")
-optimOpt$method <- "SANN"
+optimOpt$method <- "L-BFGS-B"
 
 ## Look at the documentation in RSWMM.R for the getSWMMTimeSeriesData func.
 ##   to develop a function call that returns your time series of interest
@@ -140,7 +140,7 @@ optimOpt$method <- "SANN"
 ##   nameInOutputFile as ""
 ## You should provide a function call in quotes that will subsequently be
 ##   evaled in the objective function
-optimOpt$functionCallToEvalForASWMMTimeSeries <- 'getSWMMTimeSeriesData(headObj=headObj,iType=3,nameInOutputFile="",vIndex=4)'
+optimOpt$functionCallToEvalForASWMMTimeSeries <- 'getSWMMTimeSeriesData(headObj=headObj, iType=3, nameInOutputFile="",vIndex=4)'
 
 ## Put the parameter bounds and intialization in the optimization options:
 ##   you shouldn't need to change these lines if you have imported them
@@ -152,14 +152,16 @@ optimOpt$initial <- c(as.vector(parametersTable["Initial"]))$Initial
 ## RSWMM will add the necessary extensions.  It also adds random text so
 ##   that it is thread safe, and you can run more than one RSWMM.r
 ##   optimization at the same time
-optimOpt$baseOutputName <- "O:\\departments\\Water Quality\\Users\\Peter\\programs\\RSWMM\\testingData\\OptTest1\\Opt Ex1 Post"
+optimOpt$baseOutputName <- paste0(calDataPath,
+                                  "testingData\\OptTest1\\Opt Ex1 Post")
 ## Provide a SWMM template file that has the replacement codes
-optimOpt$SWMMTemplateFile <- "O:\\departments\\Water Quality\\Users\\Peter\\programs\\RSWMM\\testingData\\Example1-Post.inp"
+optimOpt$SWMMTemplateFile <- paste0(calDataPath,
+                                    "baseModelFormat.inp")
 ## Provide a path to SWMM.exe.  The binary file reader is written for
 ##   SWMM 5.0.022.  For earlier versions of SWMM,
 ##   you would have to edit the binary file reader because the output
 ##   format has changed.
-optimOpt$SWMMexe <- "C:\\Program Files (x86)\\EPA SWMM 5.0\\SWMM5.exe"
+optimOpt$SWMMexe <- "C:\\Program Files (x86)\\EPA SWMM 5.1\\swmm5.exe"
 ## Look at RSWMM.R's performanceStatsAsMinimization function and select
 ##   one of the performance statistics
 optimOpt$performanceStat <- "sumOfSquaredError"
@@ -182,7 +184,7 @@ if(useOptim) {
               performanceStat=optimOpt$performanceStat,
               method = optimOpt$method,
               lower = optimOpt$lower, upper = optimOpt$upper,
-              control = list(), hessian = FALSE)
+              control = list(maxit=10), hessian = FALSE)
 }
 
 #############################################################################
