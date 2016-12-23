@@ -69,24 +69,24 @@ openSWMMOut<-function(outFile, verbose=T) {
             output$subcNames[i]=readChar(f, lengthName, useBytes = FALSE)
         }
     }
-  #For all nodes
-  output$nodeNames={};
-  if(output$numNode>0){
-    for(i in 1:output$numNode){
-       lengthName=readBin(f, integer(), n = 1, size = 4)
-       output$nodeNames[i]=readChar(f, lengthName, useBytes = FALSE)
+    # For all nodes
+    output$nodeNames <- {};
+    if(output$numNode>0) {
+        for(i in 1:output$numNode) {
+            lengthName <- readBin(f, integer(), n=1, size=4)
+            output$nodeNames[i] <- readChar(f, lengthName, useBytes=FALSE)
+        }
     }
-  }
-  #For all links
-  output$linkNames={};
-  if(output$numLink>0){
-    for(i in 1:output$numLink){
-       lengthName=readBin(f, integer(), n = 1, size = 4)
+    # For all links
+    output$linkNames <- {};
+    if(output$numLink>0) {
+        for(i in 1:output$numLink) {
+            lengthName <- readBin(f, integer(), n=1, size=4)
 #       print(lengthName)
-      output$linkNames[i]=readChar(f, lengthName, useBytes = FALSE)
+            output$linkNames[i] <- readChar(f, lengthName, useBytes=FALSE)
+        }
     }
-  }
-  #For all pollutants
+  # For all pollutants
   output$pollNames={};
   output$pollUnits={};
   if(output$numPoll>0){
