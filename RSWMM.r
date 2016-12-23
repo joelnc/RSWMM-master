@@ -30,11 +30,11 @@ getCalDataFromCSV<-function(CSVFile, dateFormat="%Y-%m-%d %H:%M") {
     temp <- read.csv(file=CSVFile, header=TRUE, sep=",", quote="\"",
                      dec=".", fill=TRUE, comment.char="",
                      stringsAsFactors=FALSE)
-    calData <- {}
-    calData$times <- as.POSIXct(strptime(temp[,1], format=dateFormat,
+    calData <<- {}
+    calData$times <<- as.POSIXct(strptime(temp[,1], format=dateFormat,
                                           tz="America/New_York"))
     ## Edit 2/10/2012 to force GMT time zone rather than locale specific
-    calData$obs <- temp[,2]
+    calData$obs <<- temp[,2]
     return(calData)
 }
 
@@ -49,9 +49,9 @@ getParmeterBounds <- function(parameterBoundsFile) {
     ##   file to denote uncertain parameters
     ## Min and Max are the ranges of the parameter search for each parameter
     ## Initial is the best guess used to initialize the optimization
-    parametersTable <- read.csv(file=parameterBoundsFile, header = TRUE,
-                                sep = ",", quote="\"", dec=".", fill = TRUE,
-                                comment.char="", stringsAsFactors = FALSE)
+    parametersTable <- read.csv(file=parameterBoundsFile, header=TRUE,
+                                sep = ",", quote="\"", dec=".", fill=TRUE,
+                                comment.char="", stringsAsFactors=FALSE)
     return(parametersTable)
 }
 
@@ -248,6 +248,7 @@ objectiveFunction <- function(x, performanceStat,
     SWMMTemplateModified <-
         replaceCodesInTemplateFile(SWMMTemplate, x,
                                    as.matrix(parametersTable["Code"]))
+    print(SWMMTemplateModified[53:59])
     codeToMakeThreadSafe <- paste(
         c("A","B","C","D","E","F","G","H","I","J")[floor(runif(10,1,10))],
         sep="", collapse="")
@@ -502,6 +503,7 @@ performanceStatsAsMinimization <- function(correspondingSWMMSeries,
     ## browser()
     return(output)
 }
+
 readLID <- function(filename,headObj) {
     library(zoo)
     ## readLID function added 1/11/2012 after version 1 of RSWMM
@@ -549,8 +551,21 @@ replaceCodesInTemplateFile <- function(SWMMTemplate, parameters,
                                        replacementCodes) {
     ## Replaces the codes in an input file with parameters from optimization
     for(i in 1:length(parameters)) {
-        SWMMTemplate <- gsub(replacementCodes[i], parameters[i],
-                             SWMMTemplate,fixed=TRUE)
+        ## Does so by reading a format code (e.g. 5.1f) out rather than $1$
+        tt <- replacementCodes[i]
+        fmt <- paste0("%0", nchar(tt), ".",
+                      substr(tt, regexpr(pattern="[[:punct:]]",tt)[1]+1,
+                          regexpr(pattern="[[:punct:]]",tt)[1]+1),
+                   substr(tt,regexpr(pattern="[[:lower:]]",tt)[1],
+                          regexpr(pattern="[[:lower:]]",tt)[1]))
+
+        SWMMTemplate <- gsub(replacementCodes[i],
+                             sprintf(parameters[i], fmt=fmt),
+                                 SWMMTemplate,fixed=TRUE)
+
+        ## SWMMTemplate <- gsub(replacementCodes[i], parameters[i],
+        ##                      SWMMTemplate,fixed=TRUE)
+        ## browser()
     }
     return(SWMMTemplate)
 }
