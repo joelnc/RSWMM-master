@@ -2,11 +2,14 @@
 
 ## Version 0: December 2016
 
-
+library("viridis")
 rm(list=ls())
 ## Edit this source line to reflect where you have saved RSWMM.r.
 source("C:\\Users\\95218\\Documents\\R\\RSWMM-master\\RSWMMMC.r")
-
+calDataPath <-
+    "C:\\Users\\95218\\Documents\\EPA SWMM Projects\\Base Model\\rswmm\\"
+calDataCSV <- paste0(calDataPath, "flowtest.csv")
+calDataObj <<- getCalDataFromCSV(CSVFile=calDataCSV)
 parFile <- paste0(calDataPath, "testingData\\parRangesMC.csv")
 parametersTable <- getParmeterBounds(parFile)
 mc <- {}
@@ -26,8 +29,17 @@ mc$SWMMTemplateFile <- paste0(calDataPath,
 mc$SWMMexe <- "C:\\Program Files (x86)\\EPA SWMM 5.1\\swmm5.exe"
 mc$performanceStat <- "vestigal"
 setwd(dirname(mc$SWMMTemplateFile))
+##plot(calDataObj$obs, type="l", lwd=2, log="y", ylim=c(0.0001,100000))
+out <- runMC(iters=15, controlList=mc, parT=parametersTable)
 
-out <- runMC(iters=3, controlList=mc, parT=parametersTable)
+## plot results
+out <- out+.001
+
+plot(out[2250:2400,1], type="l", col=viridis(10)[4],
+     log="y", ylim=c(0.001,1000))
+for (i in 2:dim(out)[2]) {
+    lines(out[2250:2400,i], col=viridis(10)[floor(runif(1,1,10))])
+}
 
 
 ####

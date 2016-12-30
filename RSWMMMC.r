@@ -5,6 +5,8 @@
 
 runMC <- function(iters, controlList, parT) {
 
+    ## Time series holder, for now
+    tsHolder <- matrix(nrow=length(calDataObj$obs), ncol=iters)
     ## Not sure what this code does.... create dir that exists already?
     options(warn=-1)
     dir.create(dirname(controlList$baseOutputName))
@@ -70,23 +72,40 @@ runMC <- function(iters, controlList, parT) {
                 text=controlList$functionCallToEvalForASWMMTimeSeries))
 
             print(correspondingSWMMSeries[470:485])
+
+            ## Call OF, calDataObj is global, no need to pass
+            ofVal <- obFun(SWMMTS=correspondingSWMMSeries)
             ## perfStats <-
             ##     performanceStatsAsMinimization(correspondingSWMMSeries)
             ## perfStatsToUse <- as.numeric(perfStats[performanceStat])
 
             ## summaryRow <- unlist(c(iteration, x, perfStatsToUse))
             ## ## browser()
-            ## close(headObj$outFileHandle)
+            close(headObj$outFileHandle)
+            print(ofVal)
+            tsHolder[,sim] <- correspondingSWMMSeries
+            rm(correspondingSWMMSeries)
+            ##lines(correspondingSWMMSeries,
+            ##      col=viridis(10)[floor(runif(1,1,11))])
         }
 
+        ## To Do:  figure out how/if to use this
         else {
-            summaryRow <- unlist(c(iteration,x,perfStatsToUse))
+            ##summaryRow <- unlist(c(iteration,x,perfStatsToUse))
             stop(paste(
                 "SWMM returned an error. Optimization stopping.  See",
                 rptFile))
-            return(array(NaN, length(performanceStat)))
+            ##return(array(NaN, length(performanceStat)))
         }
     }
+    return(tsHolder)
+}
+
+
+## simple sum of squared errors
+obFun <- function(SWMMTS) {
+    sse <- sum((SWMMTS-calDataObj$obs)^2)
+    return(sse)
 }
 
 readTemplateFile <- function(SWMMTemplateFile) {
@@ -155,6 +174,7 @@ checkSWMMForErrors <- function(outFile) {
                                                size=4)
     output$numReportingPeriods <- readBin(f, integer(), n=1, size=4)
     output$errorStatus <- readBin(f, integer(), n=1, size=4)
+##    close(f)
     return(output$errorStatus)
 }
 
@@ -317,6 +337,7 @@ openSWMMOut <- function(outFile, verbose=T) {
          output$numLink*(output$numLinkVars) +
          output$numSysVars)*RECORDSIZE;
 
+    ##close(f)
     return(output)
 }
 
@@ -342,6 +363,7 @@ getSWMMTimes <- function(headObj) {
     headObj$SWMMTimes <- headObj$SWMMTimes*86400.0 +
         as.POSIXct(strptime("12/30/1899", format="%m/%d/%Y",
                             tz="America/New_York"))
+##    close(f)
     return(headObj)
 }
 
