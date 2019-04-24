@@ -49,7 +49,7 @@ getParmeterBounds <- function(parameterBoundsFile) {
     ##   file to denote uncertain parameters
     ## Min and Max are the ranges of the parameter search for each parameter
     ## Initial is the best guess used to initialize the optimization
-    parametersTable <- read.csv(file=parameterBoundsFile, header=TRUE,
+    parametersTable <<- read.csv(file=parameterBoundsFile, header=TRUE,
                                 sep = ",", quote="\"", dec=".", fill=TRUE,
                                 comment.char="", stringsAsFactors=FALSE)
     return(parametersTable)
@@ -235,6 +235,7 @@ objectiveFunction <- function(x, performanceStat,
     ## baseFilename should be something like this C:\\SWMM Models\\output
     ## the iteration number and file extensions .inp, .rpt, and .out will
     ##   be added to it
+##    browser()
     if(iteration==1) {
         options(warn=-1)
         dir.create(dirname(baseOutputName))
@@ -542,7 +543,7 @@ readLID <- function(filename,headObj) {
 
 readTemplateFile <- function(SWMMTemplateFile) {
     ## Reads in the SWMM file that has replacement codes
-    SWMMTemplate <- readLines(con=SWMMTemplateFile, n=-1L, ok=TRUE,
+    SWMMTemplate <<- readLines(con=SWMMTemplateFile, n=-1L, ok=TRUE,
                               warn=TRUE, encoding="unknown")
     return(SWMMTemplate)
 }
@@ -550,6 +551,7 @@ readTemplateFile <- function(SWMMTemplateFile) {
 replaceCodesInTemplateFile <- function(SWMMTemplate, parameters,
                                        replacementCodes) {
     ## Replaces the codes in an input file with parameters from optimization
+##  browser()
     for(i in 1:length(parameters)) {
         ## Does so by reading a format code (e.g. 5.1f) out rather than $1$
         tt <- replacementCodes[i]
@@ -583,7 +585,7 @@ runSWMM <- function(inpFile, rptFile, outFile, SWMMexe='swmm5.exe',
 
     if(verbose){
         print(paste("Executing: ", command,sep="", collapse=""))
-        system(command, show.output.on.console=T)
+        system(command, show.output.on.console=F)
     } else {
         system(command, show.output.on.console=F)
     }

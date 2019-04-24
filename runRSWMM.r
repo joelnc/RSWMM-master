@@ -66,13 +66,13 @@ source("C:\\Users\\95218\\Documents\\R\\RSWMM-master\\RSWMM.r")
 #1/1/07 0:06,0.83
 calDataPath <-
     "C:\\Users\\95218\\Documents\\EPA SWMM Projects\\Base Model\\rswmm\\"
-calDataCSV <- paste0(calDataPath, "flowCalib.csv")
+calDataCSV <- paste0(calDataPath, "flowtest.csv")
 
 ## If you have a non-standard date format, you can provide that as an
 ##   argument below, but in either case you have to call the function that
 ##   reads the calData
 #getCalDataFromCSV(CSVFile=calDataCSV,dateFormat="%m/%d/%y %H:%M")
-calDataObj <- getCalDataFromCSV(CSVFile=calDataCSV)
+calDataObj <<- getCalDataFromCSV(CSVFile=calDataCSV)
 
 ## Provide a path for the CSV containing optimization history.  This is an
 ##   empty file to start out.
@@ -140,7 +140,9 @@ optimOpt$method <- "L-BFGS-B"
 ##   nameInOutputFile as ""
 ## You should provide a function call in quotes that will subsequently be
 ##   evaled in the objective function
-optimOpt$functionCallToEvalForASWMMTimeSeries <- 'getSWMMTimeSeriesData(headObj=headObj, iType=3, nameInOutputFile="",vIndex=4)'
+optimOpt$functionCallToEvalForASWMMTimeSeries <-
+    paste0('getSWMMTimeSeriesData(headObj=headObj, iType=3, ',
+           'nameInOutputFile="",vIndex=4)')
 
 ## Put the parameter bounds and intialization in the optimization options:
 ##   you shouldn't need to change these lines if you have imported them
@@ -152,8 +154,8 @@ optimOpt$initial <- c(as.vector(parametersTable["Initial"]))$Initial
 ## RSWMM will add the necessary extensions.  It also adds random text so
 ##   that it is thread safe, and you can run more than one RSWMM.r
 ##   optimization at the same time
-optimOpt$baseOutputName <- paste0(calDataPath,
-                                  "testingData\\OptTest1\\Opt Ex1 Post")
+optimOpt$baseOutputName <-
+    paste0(calDataPath, "testingData\\OptTest1\\Opt Ex1 Post")
 ## Provide a SWMM template file that has the replacement codes
 optimOpt$SWMMTemplateFile <- paste0(calDataPath,
                                     "baseModelFormat.inp")
@@ -176,15 +178,16 @@ optimOpt$performanceStat <- "sumOfSquaredError"
 setwd(dirname(optimOpt$SWMMTemplateFile))
 
 if(useOptim) {
-    out=optim(optimOpt$initial, objectiveFunction, gr = NULL,
-              baseOutputName= optimOpt$baseOutputName,
-              SWMMTemplateFile=optimOpt$SWMMTemplateFile,
-              SWMMexe=optimOpt$SWMMexe,
-              functionCallToEvalForASWMMTimeSeries=optimOpt$functionCallToEvalForASWMMTimeSeries,
-              performanceStat=optimOpt$performanceStat,
-              method = optimOpt$method,
-              lower = optimOpt$lower, upper = optimOpt$upper,
-              control = list(maxit=10), hessian = FALSE)
+    out <- optim(optimOpt$initial, fn=objectiveFunction, gr=NULL,
+                 baseOutputName=optimOpt$baseOutputName,
+                 SWMMTemplateFile=optimOpt$SWMMTemplateFile,
+                 SWMMexe=optimOpt$SWMMexe,
+                 functionCallToEvalForASWMMTimeSeries=
+                     optimOpt$functionCallToEvalForASWMMTimeSeries,
+                 performanceStat=optimOpt$performanceStat,
+                 method=optimOpt$method,
+                 lower=optimOpt$lower, upper=optimOpt$upper,
+                 control=list(maxit=10, REPORT=12), hessian=FALSE)
 }
 
 #############################################################################

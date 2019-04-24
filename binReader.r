@@ -2,82 +2,217 @@
 
 ## Version 0: December 2016
 # PS Revision 1.1: January 1/10/2012, corrected problem in binary file reader
+rm(list=ls())
+## Set path for output file
+outFile <- paste0("C:\\Users\\95218\\Documents\\EPA SWMM Projects\\",
+                  "Base Model\\rswmm\\baseModelFormatSimp.out")
 
-runMC <- function(iters, controlList, parT) {
+## Set check ofr errors function
+checkSWMMForErrors <- function(outFile) {
+## Checks a SWMM output file for errors
+    f <- file(outFile,"rb")
+    seek(f,-6*4,"end")
+    output <- {}
+    output$position.objectID <- readBin(f, integer(), n = 1, size = 4)
+    output$position.objectProperties <- readBin(f, integer(), n = 1,
+                                                size = 4)
+    output$position.computedResults <- readBin(f, integer(), n=1,
+                                               size=4)
+    output$numReportingPeriods <- readBin(f, integer(), n=1, size=4)
+    output$errorStatus <- readBin(f, integer(), n=1, size=4)
+##    close(f)
+    return(output$errorStatus)
+}
 
-    ## Time series holder, for now
-    tsHolder <- matrix(nrow=length(calDataObj$obs), ncol=iters)
 
-    ## Not sure what this code does.... create dir that exists already?
-    options(warn=-1)
-    dir.create(dirname(controlList$baseOutputName))
-    options(warn=1)
+if(!file.exists(outFile)) {
+    errCode <- 1
+} else {
+    errCode <- checkSWMMForErrors(outFile)
+}
 
-    ## Read the SWMM input file
-    SWMMTemplate <<- readTemplateFile(controlList$SWMMTemplateFile)
+print(paste0("Error Code: ", errCode))
 
-    ## Loop over n iterations
-    for (sim in 1:iters) {
 
-        ## PS Keep for now....
-        optFileHeader <- c("Iteration",
-                           paste("Parameter", t(parametersTable["Code"]),
-                                 sep=""),
-                           controlList$performanceStat)
+openSWMMOut <- function(outFile, verbose=T) {
+## Gets the header of a binary output file
+    RECORDSIZE <- 4
+    output <- {}
+    f <- file(outFile, "rb")
 
-        ## Take unif random sample for all varying pars
-        ## (runif takes vectorized inputs by default...)
-        parSample <- runif(nrow(parT), parT$Minimum, parT$Maximum)
+    output$header <- readBin(f, integer(), n = 7, size = 4)
+    output$numSubc <- output$header[4]
+    output$numNode <- output$header[5]
+    output$numLink <- output$header[6]
+    output$numPoll <- output$header[7]
+    output$unitCode <- output$header[3]
 
-        ## Call function to subst. in sampled parameter values
-        SWMMTemplateModified <-
-            replaceCodesInTemplateFile(SWMMTemplate, parSample,
-                                       as.matrix(parametersTable["Code"]))
-
-        ## print check that things are working as expected
-        print(SWMMTemplateModified[53:59])
-
-        ## Make file names to run SWMM.
-        codeToMakeThreadSafe <- paste(
-            c("A","B","C","D","E","F","G","H")[floor(runif(8,1,8))],
-            sep="", collapse="")
-
-        inpFile <- paste0(controlList$baseOutputName, sim, " ",
-                         codeToMakeThreadSafe, '.inp')
-        rptFile <- paste0(controlList$baseOutputName, sim, " ",
-                          codeToMakeThreadSafe, '.rpt')
-        outFile <- paste0(controlList$baseOutputName, sim, " ",
-                          codeToMakeThreadSafe, '.out')
-
-        ## Call function to write .inp file
-        writeNewInputFile(SWMMTemplateModified, inpFile)
-
-        print(paste0("Starting #: ", sim, " of ", iters))
-
-        ## Call function to run swmm
-        runSWMM(inpFile, rptFile, outFile, controlList$SWMMexe, verbose=T)
-
-        ## Check for error codes
-        if(!file.exists(outFile)) {
-            errCode <- 1
-        } else {
-            errCode <- checkSWMMForErrors(outFile)
+    seek(f,-6*4,"end")
+    output$position.objectID <- readBin(f, integer(), n = 1, size = 4)
+    output$position.objectProperties <- readBin(f, integer(), n=1, size=4)
+    output$position.computedResults <- readBin(f, integer(), n=1, size=4)
+    output$numReportingPeriods <- readBin(f, integer(), n=1, size=4)
+    output$errorStatus <- readBin(f, integer(), n=1, size=4)
+    if(output$errorStatus>0) {
+        print(paste("SWMM Errored out with code", output$errorStatus))
+        return(output)
+    }
+    ## Get Object IDs
+    seek(f, output$position.objectID, "start")
+    ## For all subcatchments
+    output$subcNames <- {}
+    if(output$numSubc>0) {
+        for(i in 1:output$numSubc) {
+            lengthName <- readBin(f, integer(), n = 1, size = 4)
+            output$subcNames[i]=readChar(f, lengthName, useBytes = FALSE)
         }
-        ## print(paste0("Error Code: ", errCode))
+    }
+    ## For all nodes
+    output$nodeNames <- {}
+    if(output$numNode>0) {
+        for(i in 1:output$numNode) {
+            lengthName <- readBin(f, integer(), n=1, size=4)
+            output$nodeNames[i] <- readChar(f, lengthName, useBytes=FALSE)
+        }
+    }
+    ## For all links
+    output$linkNames <- {}
+    if(output$numLink>0) {
+        for(i in 1:output$numLink) {
+            lengthName <- readBin(f, integer(), n=1, size=4)
+            ## print(lengthName)
+            output$linkNames[i] <- readChar(f, lengthName, useBytes=FALSE)
+        }
+    }
+    ## For all pollutants
+    output$pollNames <- {}
+    output$pollUnits <- {}
+    if(output$numPoll>0) {
+    ## A bug was fixed in this section on 1/10/2012 at 1:34 pm
+        for(i in 1:output$numPoll) {
+            lengthName <- readBin(f, integer(), n=1, size=4)
+            output$pollNames[i] <- readChar(f, lengthName, useBytes=FALSE)
+        }
+        for(i in 1:output$numPoll) {
+            unitCode <- readBin(f, integer(), n=1, size=4)
+            ## print(unitCode)
+            if(unitCode==0) {
+                output$pollUnits[i] <- "mg/L"
+            } else if(unitCode==1) {
+                output$pollUnits[i] <- "ug/L"
+            } else if(unitCode==2) {
+                output$pollUnits[i] <- "counts/L"
+            }
+        }
+    ## End 1/10/2012 bug fix
+    }
+    seek(f, output$position.objectProperties, "start")
+##browser()
 
-        ## If no errors, then
+    ## Subcatchments
+    output$numSubcPropSaved <- readBin(f, integer(), n=1, size=4)
+    output$codesSubcPropSaved <- readBin(f, integer(), n=1, size=4)
+    if (output$codesSubcPropSaved==1){
+        output$subcArea=readBin(f, what="double", n=output$numSubc,size=4)
+        ## print(output$subcArea)
+    }
+
+    ## Nodes
+    output$numNodePropSaved <- readBin(f, integer(), n=1, size=4)
+    output$codesNodePropSaved <- readBin(f, integer(),
+                                         n=output$numNodePropSaved, size=4)
+
+    if(output$numNode>0) {
+        temp <- readBin(f, what="double",
+                        n=output$numNodePropSaved*output$numNode, size=4)
+        codestemp <- temp[seq(from=1, by=3, to=length(temp))]
+        output$nodeType <- {}
+        count <- 0
+        for(i in codestemp) {
+            count <- count+1
+            if(i==0) {
+                output$nodeType[count] <- "Junction"
+            } else if(i==1){
+                output$nodeType[count] <- "Outfall"
+            } else if(i==2){
+                output$nodeType[count] <- "Storage"
+            } else if(i==3){
+                output$nodeType[count] <- "Divider"
+            }
+        }
+        output$nodeInvert <- temp[seq(from=2,by=3,to=length(temp))]
+        output$nodeMaxDepth <- temp[seq(from=3,by=3,to=length(temp))]
+    }
+    ## Links
+    output$numLinkPropSaved <- readBin(f, integer(), n=1, size=4)
+    output$codesLinkPropSaved <- readBin(f, integer(),
+                                         n=output$numLinkPropSaved, size=4)
+    if(output$numLink>0) {
+        temp <- readBin(f, what="double",
+                        n=output$numLinkPropSaved*output$numLink, size=4)
+        codestemp <- temp[seq(from=1, by=5, to=length(temp))]
+        output$linkType <- {}
+        count <- 0
+        for(i in codestemp) {
+            count <- count+1
+            if(i==0) {
+                output$linkType[count] <- "Conduit"
+            } else if(i==1) {
+                output$linkType[count] <- "Pump"
+            } else if(i==2) {
+                output$linkType[count] <- "Orifice"
+            } else if(i==3) {
+                output$linkType[count] <- "Weir"
+            } else if(i==4) {
+                output$linkType[count] <- "Outlet"
+            }
+        }
+
+        output$linkUpstreamInvertOffset <- temp[seq(from=2, by=5,
+                                                    to=length(temp))]
+        output$linkDownstreamInvertOffset <- temp[seq(from=3, by=5,
+                                                      to=length(temp))]
+        output$linkMaxDepth <- temp[seq(from=4, by=5, to=length(temp))]
+        output$linkLength <- temp[seq(from=5, by=5, to=length(temp))]
+    }
+
+    output$outFileHandle <- f
+    output$numSubcVars <- readBin(f, integer(), n=1, size=4)
+
+    output$subcVarCodes <- readBin(f,integer(),n= output$numSubcVars,size=4)
+    output$numNodeVars <- readBin(f, integer(), n=1, size=4)
+
+    output$nodeVarCodes <- readBin(f, integer(), n=output$numNodeVars,
+                                   size=4)
+    output$numLinkVars <- readBin(f, integer(), n=1, size=4)
+    output$linkVarCodes <- readBin(f, integer(), n=output$numLinkVars,
+                                   size=4)
+    output$numSysVars <- readBin(f, integer(), n=1, size=4)
+    output$sysVarCodes <- readBin(f, integer(), n=output$numSysVars, size=4)
+    output$bytesPerPeriod <- 2*RECORDSIZE +
+        (output$numSubc*(output$numSubcVars) +
+         output$numNode*(output$numNodeVars) +
+         output$numLink*(output$numLinkVars) +
+         output$numSysVars)*RECORDSIZE;
+
+    ##close(f)
+    return(output)
+}
+
+
+
+
+
+
         if(errCode==0) {
             headObj <- openSWMMOut(outFile)
-##            browser()
             headObj <- getSWMMTimes(headObj)
             interpCalDataToSWMMTimes(headObj)
             correspondingSWMMSeries <- eval(parse(
                 text=controlList$functionCallToEvalForASWMMTimeSeries))
 
-            print(correspondingSWMMSeries)
-break
-            browser()
-            Q
+            print(correspondingSWMMSeries[470:485])
+
             ## Call OF, calDataObj is global, no need to pass
             ofVal <- obFun(SWMMTS=correspondingSWMMSeries)
             ## perfStats <-
@@ -167,21 +302,6 @@ runSWMM <- function(inpFile, rptFile, outFile, SWMMexe='swmm5.exe',
     }
     flush.console()
 }
-checkSWMMForErrors <- function(outFile) {
-## Checks a SWMM output file for errors
-    f <- file(outFile,"rb")
-    seek(f,-6*4,"end")
-    output <- {}
-    output$position.objectID <- readBin(f, integer(), n = 1, size = 4)
-    output$position.objectProperties <- readBin(f, integer(), n = 1,
-                                                size = 4)
-    output$position.computedResults <- readBin(f, integer(), n=1,
-                                               size=4)
-    output$numReportingPeriods <- readBin(f, integer(), n=1, size=4)
-    output$errorStatus <- readBin(f, integer(), n=1, size=4)
-##    close(f)
-    return(output$errorStatus)
-}
 
 openSWMMOut <- function(outFile, verbose=T) {
 ## Gets the header of a binary output file
@@ -256,7 +376,7 @@ openSWMMOut <- function(outFile, verbose=T) {
     ## End 1/10/2012 bug fix
     }
     seek(f, output$position.objectProperties, "start")
-##browser()
+browser()
 
     ## Subcatchments
     output$numSubcPropSaved <- readBin(f, integer(), n=1, size=4)
@@ -345,7 +465,6 @@ openSWMMOut <- function(outFile, verbose=T) {
          output$numSysVars)*RECORDSIZE;
 
     ##close(f)
-    print(str(output))
     return(output)
 }
 
