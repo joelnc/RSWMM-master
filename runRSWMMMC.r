@@ -1,7 +1,6 @@
-## RunRSWMM Developed by Peter Steinberg of Herrera Env. Consultants
-## Send bugs and feature requests to: psteinberg@herrerainc.com, 206-715-4492
-## Version 1: December 2011
-## Revision 1.1: January 1/10/2012, corrected problem in binary file reader
+## Derived from RunRSWMM,  Developed by Peter Steinberg of Herrera Env.
+
+## Version 0: December 2016
 
 ## General Notes
 ## Before editing this script do the following things:
@@ -42,10 +41,10 @@
 
 ## Preliminaries: clear workspace and source the RSWMM code for a
 ##   function library
+
 rm(list=ls())
 ## Edit this source line to reflect where you have saved RSWMM.r.
-source("C:\\Users\\95218\\Documents\\R\\RSWMM-master\\RSWMM.r")
-
+source("C:\\Users\\95218\\Documents\\R\\RSWMM-master\\RSWMMMC.r")
 ## If you are doing a calib. run, you need to provide the following lines
 ##   to direct the optimizer to your files
 ## Calibration Data should be in a CSV with datetimes in the first column,
@@ -67,18 +66,15 @@ source("C:\\Users\\95218\\Documents\\R\\RSWMM-master\\RSWMM.r")
 calDataPath <-
     "C:\\Users\\95218\\Documents\\EPA SWMM Projects\\Base Model\\rswmm\\"
 calDataCSV <- paste0(calDataPath, "flowtest.csv")
-
 ## If you have a non-standard date format, you can provide that as an
 ##   argument below, but in either case you have to call the function that
 ##   reads the calData
 #getCalDataFromCSV(CSVFile=calDataCSV,dateFormat="%m/%d/%y %H:%M")
 calDataObj <<- getCalDataFromCSV(CSVFile=calDataCSV)
-
 ## Provide a path for the CSV containing optimization history.  This is an
 ##   empty file to start out.
 ## Make sure you have created the directories that will hold this file
-optFile <- paste0(calDataPath, "testingData\\Optimization History.csv")
-
+##optFile <- paste0(calDataPath, "testingData\\Optimization History.csv")
 ## Provide a path for the CSV containing parameter bounds
 ## For ease, make your parameter bounds file in this format (without the
 ##   comment symbols):
@@ -90,40 +86,34 @@ optFile <- paste0(calDataPath, "testingData\\Optimization History.csv")
 ##     $5$,25,100,33
 ##     $6$,20,75,33
 ##     $7$,20,60,50
-parFile <- paste0(calDataPath, "testingData\\parRanges.csv")
+parFile <- paste0(calDataPath, "testingData\\parRangesMC.csv")
 parametersTable <- getParmeterBounds(parFile)
-
 ## Initialize the iteration count and the optimization history, in case you
 ##   want to stop the model before the optimization function is complete.
 ## If you press the STOP button before the optimzation function returns,
 ##   you can check your
 ## csv provided above or the variable optimizationHistory for intermediate
 ##   results
-
-iteration <- 1
-optimizationHistory <- data.frame()
-
+##iteration <- 1
+##optimizationHistory <- data.frame()
 ## Select single or multiobjective optimization by setting one of the two
 ##   following variables to TRUE
 ## Set useOptim to TRUE if you are doing single objective optimization,
 ##   otherwise FALSE
-useOptim <- TRUE
+##useOptim <- TRUE
 ## Set useMCO to TRUE if you are doing multiobj optimi., otherwise FALSE
-useMCO <- FALSE
+##useMCO <- FALSE
 
 #############################################################################
 #######################Single Objective Calibration Begins Here##############
 #############################################################################
 ## If you are doing multi-objective optimization, this section is ignored
-
 ## Provide options for single objective optimization
 ## Initialize the options object
-optimOpt <- {}
-
+mc <- {}
 ## Pick one of six methods for calibration: may be one of = c("Nelder-Mead",
 ##   "BFGS", "CG", "L-BFGS-B", "SANN", "Brent")
-optimOpt$method <- "L-BFGS-B"
-
+##optimOpt$method <- "L-BFGS-B"
 ## Look at the documentation in RSWMM.R for the getSWMMTimeSeriesData func.
 ##   to develop a function call that returns your time series of interest
 ##   from the SWMM binary file
@@ -140,33 +130,33 @@ optimOpt$method <- "L-BFGS-B"
 ##   nameInOutputFile as ""
 ## You should provide a function call in quotes that will subsequently be
 ##   evaled in the objective function
-optimOpt$functionCallToEvalForASWMMTimeSeries <-
+mc$functionCallToEvalForASWMMTimeSeries <-
     paste0('getSWMMTimeSeriesData(headObj=headObj, iType=3, ',
            'nameInOutputFile="",vIndex=4)')
 
 ## Put the parameter bounds and intialization in the optimization options:
 ##   you shouldn't need to change these lines if you have imported them
 ##   using RSWMM formats/functions
-optimOpt$lower <- c(as.vector(parametersTable["Minimum"]))$Minimum
-optimOpt$upper <- c(as.vector(parametersTable["Maximum"]))$Maximum
-optimOpt$initial <- c(as.vector(parametersTable["Initial"]))$Initial
+mc$lower <- c(as.vector(parametersTable["Minimum"]))$Minimum
+mc$upper <- c(as.vector(parametersTable["Maximum"]))$Maximum
+##optimOpt$initial <- c(as.vector(parametersTable["Initial"]))$Initial
 ## Provide a base name for the input/output files that are created
 ## RSWMM will add the necessary extensions.  It also adds random text so
 ##   that it is thread safe, and you can run more than one RSWMM.r
 ##   optimization at the same time
-optimOpt$baseOutputName <-
-    paste0(calDataPath, "testingData\\OptTest1\\Opt Ex1 Post")
+mc$baseOutputName <-
+    paste0(calDataPath, "testingData\\MCTest1\\")
 ## Provide a SWMM template file that has the replacement codes
-optimOpt$SWMMTemplateFile <- paste0(calDataPath,
+mc$SWMMTemplateFile <- paste0(calDataPath,
                                     "baseModelFormat.inp")
 ## Provide a path to SWMM.exe.  The binary file reader is written for
 ##   SWMM 5.0.022.  For earlier versions of SWMM,
 ##   you would have to edit the binary file reader because the output
 ##   format has changed.
-optimOpt$SWMMexe <- "C:\\Program Files (x86)\\EPA SWMM 5.1\\swmm5.exe"
+mc$SWMMexe <- "C:\\Program Files (x86)\\EPA SWMM 5.1\\swmm5.exe"
 ## Look at RSWMM.R's performanceStatsAsMinimization function and select
 ##   one of the performance statistics
-optimOpt$performanceStat <- "sumOfSquaredError"
+mc$performanceStat <- "vestigal"
 
 ## The following function call does the optimization.  It should not need
 ##   any edits, unless you want to look at the optim function documentation
@@ -175,7 +165,15 @@ optimOpt$performanceStat <- "sumOfSquaredError"
 ## Set the working directory in R to be the directory of the swmm template
 ##   so that LID reports
 ## Show up in the right place #this is a 1/24/2012 edit
-setwd(dirname(optimOpt$SWMMTemplateFile))
+setwd(dirname(mc$SWMMTemplateFile))
+
+## calData is global, pass function call, OF
+
+out <- runMC(iters=3, controlList=mc, parT=parametersTable)
+
+
+####
+####
 
 if(useOptim) {
     out <- optim(optimOpt$initial, fn=objectiveFunction, gr=NULL,
