@@ -7,9 +7,9 @@ rm(list=ls())
 library("viridis")
 rm(list=ls())
 ## Edit this source line to reflect where you have saved RSWMM.r.
-source("C:\\Users\\95218\\Documents\\R\\RSWMM-master\\RSWMMMC.r")
+source("C:\\Users\\95218\\R\\RSWMM-master\\RSWMMMC.r")
 calDataPath <-
-    "C:\\Users\\95218\\Documents\\EPA SWMM Projects\\Base Model\\rswmm\\"
+    "C:\\Users\\95218\\OneDrive - City of Charlotte\\EPA SWMM Projects\\Base Model\\rswmm\\"
 calDataCSV <- paste0(calDataPath, "flowtest.csv")
 calDataObj <<- getCalDataFromCSV(CSVFile=calDataCSV)
 parFile <- paste0(calDataPath, "testingData\\parRangesMC.csv")
@@ -39,12 +39,13 @@ mc$upper <- c(as.vector(parametersTable["Maximum"]))$Maximum
 mc$baseOutputName <-
     paste0(calDataPath, "testingData\\MCTest1\\")
 mc$SWMMTemplateFile <- paste0(calDataPath,
-                                    "baseModelFormatSimp.inp")
-mc$SWMMexe <- "C:\\Program Files (x86)\\EPA SWMM 5.1\\swmm5.exe"
+                                    "baseModelFormat.inp")
+mc$SWMMexe <- "C:\\Program Files (x86)\\EPA SWMM 5.1.013\\swmm5.exe"
 mc$performanceStat <- "vestigal"
 setwd(dirname(mc$SWMMTemplateFile))
-##plot(calDataObj$obs, type="l", lwd=2, log="y", ylim=c(0.0001,100000))
-out <- runMC(iters=2, controlList=mc, parT=parametersTable)
+
+## Run fun
+out <- runMC(iters=10, controlList=mc, parT=parametersTable)
 
 ## plot results
 out <- out+.001

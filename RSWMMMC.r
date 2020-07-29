@@ -74,10 +74,10 @@ runMC <- function(iters, controlList, parT) {
             correspondingSWMMSeries <- eval(parse(
                 text=controlList$functionCallToEvalForASWMMTimeSeries))
 
-            print(correspondingSWMMSeries)
-break
-            browser()
-            Q
+##             print(correspondingSWMMSeries)
+## break
+##             browser()
+
             ## Call OF, calDataObj is global, no need to pass
             ofVal <- obFun(SWMMTS=correspondingSWMMSeries)
             ## perfStats <-
