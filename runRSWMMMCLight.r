@@ -1,8 +1,6 @@
 ## Derived from RunRSWMM,  Developed by Peter Steinberg of Herrera Env.
 
 ## Version 0: December 2016
-close(f)
-rm(list=ls())
 
 library("viridis")
 rm(list=ls())

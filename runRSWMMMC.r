@@ -44,7 +44,8 @@
 
 rm(list=ls())
 ## Edit this source line to reflect where you have saved RSWMM.r.
-source("C:\\Users\\95218\\Documents\\R\\RSWMM-master\\RSWMMMC.r")
+source("C:\\Users\\95218\\R\\RSWMM-master\\RSWMMMC.r")
+
 ## If you are doing a calib. run, you need to provide the following lines
 ##   to direct the optimizer to your files
 ## Calibration Data should be in a CSV with datetimes in the first column,
@@ -64,7 +65,7 @@ source("C:\\Users\\95218\\Documents\\R\\RSWMM-master\\RSWMMMC.r")
 #1/1/07 0:05,0.67
 #1/1/07 0:06,0.83
 calDataPath <-
-    "C:\\Users\\95218\\Documents\\EPA SWMM Projects\\Base Model\\rswmm\\"
+    "C:\\Users\\95218\\OneDrive - City of Charlotte\\EPA SWMM Projects\\Base Model\\rswmm\\"
 calDataCSV <- paste0(calDataPath, "flowtest.csv")
 ## If you have a non-standard date format, you can provide that as an
 ##   argument below, but in either case you have to call the function that
@@ -153,7 +154,7 @@ mc$SWMMTemplateFile <- paste0(calDataPath,
 ##   SWMM 5.0.022.  For earlier versions of SWMM,
 ##   you would have to edit the binary file reader because the output
 ##   format has changed.
-mc$SWMMexe <- "C:\\Program Files (x86)\\EPA SWMM 5.1\\swmm5.exe"
+mc$SWMMexe <- "C:\\Program Files (x86)\\EPA SWMM 5.1.013\\swmm5.exe"
 ## Look at RSWMM.R's performanceStatsAsMinimization function and select
 ##   one of the performance statistics
 mc$performanceStat <- "vestigal"

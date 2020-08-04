@@ -344,7 +344,7 @@ openSWMMOut <- function(outFile, verbose=T) {
          output$numLink*(output$numLinkVars) +
          output$numSysVars)*RECORDSIZE;
 
-    ##close(f)
+    ## close(f)
     print(str(output))
     return(output)
 }
